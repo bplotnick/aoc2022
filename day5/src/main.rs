@@ -17,22 +17,37 @@ fn main() {
     let file = File::open("input.txt").expect("can't find input.txt");
     let mut lines = BufReader::new(file).lines().filter_map(|i| i.ok());
 
-    let mut stax = build_stacks(&mut lines);
+    let stax = build_stacks(&mut lines);
 
     let ops: Vec<_> = parse_ops(&mut lines);
-    
-    execute_ops(&mut stax, &ops);
-    println!("{}", stax.iter().map(|s| s.last().unwrap()).join(&""));
-}
 
+    let mut stax_pt1 = stax.clone();
+    execute_ops(&mut stax_pt1, &ops);
+    println!("{}", stax_pt1.iter().map(|s| s.last().unwrap()).join(&""));
+
+    let mut stax_pt2 = stax.clone();
+    execute_ops_pt2(&mut stax_pt2, &ops);
+    println!("{}", stax_pt2.iter().map(|s| s.last().unwrap()).join(&""));
+}
 
 // Modifies stax in place
 fn execute_ops(stax: &mut Vec<Stack>, ops: &Vec<Op>) {
     for op in ops {
         for _ in 0..op.num {
-            let a = stax[op.from-1].pop().unwrap();
-            stax[op.to-1].push(a);
+            let a = stax[op.from - 1].pop().unwrap();
+            stax[op.to - 1].push(a);
         }
+    }
+}
+
+fn execute_ops_pt2(stax: &mut Vec<Stack>, ops: &Vec<Op>) {
+    for op in ops {
+        (0..op.num)
+            .map(|_| stax[op.from - 1].pop().unwrap())
+            .collect::<Vec<_>>()
+            .iter()
+            .rev()
+            .for_each(|a| stax[op.to - 1].push(*a));
     }
 }
 
