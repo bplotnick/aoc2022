@@ -37,12 +37,19 @@ fn main() {
 
     let tree = build_tree(&mut lines);
 
-    let mut total_res: u32 = 0;
-    total_size(&tree.borrow(), &mut total_res);
-    println!("{}", total_res);
+    let mut total_res: Vec<u32> = Vec::new();
+    let root_size = total_size(&tree.borrow(), &mut total_res);
+    println!("{}", total_res.iter().filter(|&i| *i<100000).sum::<u32>());
+
+    let mut x = total_res
+        .iter()
+        .filter(|&i| *i > 30000000-(70000000-root_size))
+        .collect::<Vec<&u32>>();
+    x.sort();
+    println!("{}", x.first().unwrap());
 }
 
-fn total_size(tree: &Directory, total_res: &mut u32) -> u32 {
+fn total_size(tree: &Directory, total_res: &mut Vec<u32>) -> u32 {
     let mut total: u32 = tree.files.iter().sum();
     total = total
         + tree
@@ -50,10 +57,7 @@ fn total_size(tree: &Directory, total_res: &mut u32) -> u32 {
             .values()
             .map(|c| total_size(&c.borrow(), total_res))
             .sum::<u32>();
-    if total < 100000 {
-        *total_res = *total_res + total;
-        println!("{} - {}", tree.name, total);
-    }
+    total_res.push(total);
     return total;
 }
 
@@ -68,7 +72,6 @@ fn build_tree(lines: &mut impl Iterator<Item = String>) -> Rc<RefCell<Directory>
     lines.next();
     let mut curdir = root.clone();
     while let Some(line) = lines.next() {
-        println!("{}", line);
         match LineType::from(&line) {
             LineType::List => (),
             LineType::ChangeDir => {
@@ -77,7 +80,6 @@ fn build_tree(lines: &mut impl Iterator<Item = String>) -> Rc<RefCell<Directory>
                     let foo = curdir.borrow().parent.clone().unwrap();
                     curdir = foo;
                 } else {
-                    // println!("{}", dest);
                     let bar = curdir.borrow().children.get(dest).unwrap().clone();
                     curdir = bar;
                 }
