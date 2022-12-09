@@ -1,4 +1,10 @@
-use std::{io::{BufReader, BufRead}, fs::File, collections::HashMap, rc::Rc, cell::RefCell};
+use std::{
+    cell::RefCell,
+    collections::HashMap,
+    fs::File,
+    io::{BufRead, BufReader},
+    rc::Rc,
+};
 
 struct Directory {
     name: String,
@@ -27,13 +33,41 @@ impl LineType {
 
 fn main() {
     let file = File::open("input.txt").expect("can't find input.txt");
-    let mut reader = BufReader::new(file).lines().filter_map(|i| i.ok());
+    let mut lines = BufReader::new(file).lines().filter_map(|i| i.ok());
 
+    let tree = build_tree(&mut lines);
+
+    let mut total_res: u32 = 0;
+    total_size(&tree.borrow(), &mut total_res);
+    println!("{}", total_res);
+}
+
+fn total_size(tree: &Directory, total_res: &mut u32) -> u32 {
+    let mut total: u32 = tree.files.iter().sum();
+    total = total
+        + tree
+            .children
+            .values()
+            .map(|c| total_size(&c.borrow(), total_res))
+            .sum::<u32>();
+    if total < 100000 {
+        *total_res = *total_res + total;
+        println!("{} - {}", tree.name, total);
+    }
+    return total;
+}
+
+fn build_tree(lines: &mut impl Iterator<Item = String>) -> Rc<RefCell<Directory>> {
     // We know the first line is cd /. skip it
-    let root = Rc::new(RefCell::new(Directory { name: String::from("/"), parent: None, children: HashMap::new(), files: Vec::new()}));
-    reader.next();
+    let root = Rc::new(RefCell::new(Directory {
+        name: String::from("/"),
+        parent: None,
+        children: HashMap::new(),
+        files: Vec::new(),
+    }));
+    lines.next();
     let mut curdir = root.clone();
-    while let Some(line) = reader.next() {
+    while let Some(line) = lines.next() {
         println!("{}", line);
         match LineType::from(&line) {
             LineType::List => (),
@@ -43,24 +77,29 @@ fn main() {
                     let foo = curdir.borrow().parent.clone().unwrap();
                     curdir = foo;
                 } else {
-                    println!("{}", dest);
+                    // println!("{}", dest);
                     let bar = curdir.borrow().children.get(dest).unwrap().clone();
                     curdir = bar;
                 }
-            },
+            }
             LineType::Output => {
                 let (first, second) = line.split_once(' ').unwrap();
-                    let name = second.to_owned();
-                    if first == "dir" {
-                        curdir.borrow_mut().children.insert(name, Rc::new(RefCell::new(Directory{ 
+                let name = second.to_owned();
+                if first == "dir" {
+                    curdir.borrow_mut().children.insert(
+                        name,
+                        Rc::new(RefCell::new(Directory {
                             name: second.to_owned(),
                             parent: curdir.clone().into(),
                             children: HashMap::new(),
                             files: Vec::new(),
-                        })));
-                    }
-            },
+                        })),
+                    );
+                } else {
+                    curdir.borrow_mut().files.push(first.parse().unwrap());
+                }
+            }
         }
     }
+    return root;
 }
-
