@@ -16,7 +16,7 @@ struct Monkey {
 }
 
 impl Monkey {
-    fn eval_next(&mut self) -> Option<(u64, String)> {
+    fn eval_next(&mut self, product: u64) -> Option<(u64, String)> {
         let item = self.items.pop_front()?;
 
         let mut op = self.op.split_whitespace();
@@ -36,7 +36,7 @@ impl Monkey {
             None => return None,
         };
 
-        let item = operator(first_operand, second_operand) / 3;
+        let item = operator(first_operand, second_operand) % product;
         if item % self.test as u64 == 0 {
             Some((item, self.true_monkey.clone()))
         } else {
@@ -51,6 +51,7 @@ fn main() {
 
     let mut monkeys = Vec::<Monkey>::new();
 
+    let mut product = 1u64;
     for mut chunk in lines.chunks(7).into_iter() {
         chunk.next(); // monkeynum
 
@@ -75,6 +76,7 @@ fn main() {
             .1
             .parse()
             .unwrap();
+        product *= test as u64;
 
         let true_monkey = chunk.next().unwrap().rsplit_once(" ").unwrap().1.to_owned();
         let false_monkey = chunk.next().unwrap().rsplit_once(" ").unwrap().1.to_owned();
@@ -91,11 +93,12 @@ fn main() {
     }
 
     let mut inspections = vec![0u32; monkeys.len()];
-    for _ in 0..20 {
+    let rounds = 10000u16;
+    for _ in 0..rounds {
         for m in 0..monkeys.len() {
             let cur_monkey = &mut monkeys[m];
             let mut results = Vec::<(u64, String)>::new();
-            while let Some(result) = cur_monkey.eval_next() {
+            while let Some(result) = cur_monkey.eval_next(product) {
                 inspections[m] += 1;
                 results.push(result);
             }
@@ -108,5 +111,5 @@ fn main() {
     }
     inspections.sort();
     inspections.reverse();
-    println!("{}", inspections[0] * inspections[1]);
+    println!("{}", inspections[0] as u128 * inspections[1] as u128);
 }
